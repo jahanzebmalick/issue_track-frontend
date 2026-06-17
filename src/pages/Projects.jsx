@@ -88,10 +88,60 @@ export default function Projects({ username, onLogout, onOpen }) {
 
       {/* Hero banner */}
       <div className="max-w-5xl mx-auto px-6 pt-12 pb-6">
-        <div className="relative overflow-hidden rounded-3xl border border-zinc-800/60 bg-gradient-to-br from-zinc-900/80 via-zinc-900/40 to-zinc-900/80 p-8 fade-in-up">
+        <div className="relative overflow-hidden rounded-3xl border border-zinc-800/60 bg-gradient-to-br from-zinc-900/80 via-zinc-900/40 to-zinc-900/80 p-8 fade-in-up min-h-[280px]">
           <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-gradient-to-br from-indigo-500/30 to-violet-600/30 blur-3xl float-slow" />
           <div className="absolute -bottom-32 -left-20 w-72 h-72 rounded-full bg-gradient-to-br from-fuchsia-500/20 to-pink-600/20 blur-3xl float" />
-          <div className="relative">
+
+          {/* Floating example issue cards */}
+          <div className="hidden lg:block absolute right-8 top-8 w-72 pointer-events-none">
+            <div
+              className="absolute right-0 top-0 w-64 bg-zinc-900/90 border border-zinc-800/80 rounded-xl p-3 shadow-2xl float-slow backdrop-blur"
+              style={{ transform: 'rotate(3deg) translateY(0px)' }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-amber-400 text-base">⚡</span>
+                <span className="text-xs font-mono uppercase px-2 py-0.5 rounded-full border border-red-500/30 bg-red-500/15 text-red-300">urgent</span>
+              </div>
+              <div className="text-sm font-medium text-zinc-100">Payment webhook fails 3% of the time</div>
+              <div className="text-xs text-zinc-500 mt-1.5 flex items-center gap-2">
+                <span>#142</span>
+                <span>·</span>
+                <span>2h ago</span>
+              </div>
+            </div>
+            <div
+              className="absolute right-4 top-24 w-64 bg-zinc-900/90 border border-zinc-800/80 rounded-xl p-3 shadow-2xl float backdrop-blur"
+              style={{ transform: 'rotate(-2deg) translateY(0px)', animationDelay: '-1.2s' }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-amber-400 text-base">●</span>
+                <span className="text-xs font-mono uppercase px-2 py-0.5 rounded-full border border-amber-500/30 bg-amber-500/15 text-amber-300">in progress</span>
+              </div>
+              <div className="text-sm font-medium text-zinc-100">Add dark mode to onboarding</div>
+              <div className="text-xs text-zinc-500 mt-1.5 flex items-center gap-2">
+                <span>#138</span>
+                <span>·</span>
+                <span>yesterday</span>
+              </div>
+            </div>
+            <div
+              className="absolute right-0 top-48 w-64 bg-zinc-900/90 border border-zinc-800/80 rounded-xl p-3 shadow-2xl float-slow backdrop-blur"
+              style={{ transform: 'rotate(4deg) translateY(0px)', animationDelay: '-2.5s' }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-emerald-400 text-base">●</span>
+                <span className="text-xs font-mono uppercase px-2 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/15 text-emerald-300">done</span>
+              </div>
+              <div className="text-sm font-medium text-zinc-100 line-through opacity-70">Migrate user table to UUID</div>
+              <div className="text-xs text-zinc-500 mt-1.5 flex items-center gap-2">
+                <span>#129</span>
+                <span>·</span>
+                <span>3 days ago</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative max-w-md">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-xs font-mono mb-4">
               <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
               {projects.length} {projects.length === 1 ? 'project' : 'projects'}
@@ -99,7 +149,7 @@ export default function Projects({ username, onLogout, onOpen }) {
             <h1 className="text-4xl font-bold tracking-tight text-zinc-50 mb-2">
               Welcome back, <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">{username}</span>
             </h1>
-            <p className="text-zinc-400 text-base max-w-md">
+            <p className="text-zinc-400 text-base">
               Plan, track, ship — all your projects in one place.
             </p>
             <div className="mt-5 text-xs text-zinc-500 font-mono h-4">
