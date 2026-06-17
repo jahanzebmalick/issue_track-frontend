@@ -101,6 +101,13 @@ export default function Project({ projectId, username, onBack, onOpenIssue }) {
     if (ar.ok) setActivity(await ar.json())
   }
 
+  // Poll activity every 5s as fallback for events that don't publish WS
+  useEffect(() => {
+    if (!projectId) return
+    const t = setInterval(reloadActivity, 5000)
+    return () => clearInterval(t)
+  }, [projectId])
+
   useProjectWS(projectId, (msg) => {
     setPulse(true)
     setTimeout(() => setPulse(false), 1100)
