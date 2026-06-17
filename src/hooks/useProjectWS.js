@@ -1,12 +1,17 @@
 import { useEffect, useRef } from 'react'
 
+const WS_HOST = location.host.includes('vercel.app') || location.host.includes('vercel')
+  ? 'issuetrack-api.onrender.com'
+  : location.host
+
 export function useProjectWS(projectId, onEvent) {
   const handlerRef = useRef(onEvent)
   handlerRef.current = onEvent
 
   useEffect(() => {
     if (!projectId) return
-    const wsUrl = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/api/ws?project_id=${projectId}`
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws'
+    const wsUrl = `${proto}://${WS_HOST}/api/ws?project_id=${projectId}`
     const ws = new WebSocket(wsUrl)
     ws.onmessage = (e) => {
       try {
