@@ -8,11 +8,30 @@ const STATUS_COLOR = {
   done: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
   closed: 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30',
 }
+const STATUS_BAR = {
+  open: 'bg-blue-500',
+  in_progress: 'bg-amber-500',
+  done: 'bg-emerald-500',
+  closed: 'bg-zinc-600',
+}
 const PRIORITY_LABEL = {
   low: { color: 'text-zinc-500', icon: '○' },
   medium: { color: 'text-zinc-300', icon: '◐' },
   high: { color: 'text-amber-400', icon: '●' },
   urgent: { color: 'text-red-400', icon: '⚡' },
+}
+
+function daysSince(iso) {
+  const ms = Date.now() - new Date(iso).getTime()
+  return Math.floor(ms / (1000 * 60 * 60 * 24))
+}
+
+function ageBadge(issue) {
+  if (issue.status === 'done' || issue.status === 'closed') return null
+  const d = daysSince(issue.created_at)
+  if (d >= 14) return { color: 'bg-red-500/15 text-red-300 border-red-500/30', label: 'stale' }
+  if (d >= 7) return { color: 'bg-orange-500/15 text-orange-300 border-orange-500/30', label: 'aging' }
+  return null
 }
 
 const GRADIENTS = [
@@ -258,22 +277,36 @@ export default function Project({ projectId, username, onBack, onOpenIssue }) {
               <div className="border border-zinc-800/60 rounded-xl overflow-hidden divide-y divide-zinc-800/60 bg-zinc-900/30">
                 {issues.map((i, idx) => {
                   const p = PRIORITY_LABEL[i.priority] || PRIORITY_LABEL.medium
+                  const age = ageBadge(i)
+                  const isDone = i.status === 'done' || i.status === 'closed'
                   return (
                     <button
                       key={i.id}
                       onClick={() => onOpenIssue(i.id)}
                       style={{ animationDelay: `${Math.min(idx * 40, 300)}ms` }}
-                      className="w-full text-left hover:bg-zinc-900/70 px-4 py-3.5 transition flex items-center gap-3 group fade-in-up hover:pl-5"
+                      className="w-full text-left hover:bg-zinc-900/70 transition flex items-stretch gap-0 group fade-in-up relative"
                     >
-                      <span className={`text-base ${p.color} w-5 shrink-0`}>{p.icon}</span>
-                      <span className={`text-xs font-mono uppercase px-2 py-0.5 rounded-full border ${STATUS_COLOR[i.status] || ''}`}>
-                        {i.status.replace('_', ' ')}
-                      </span>
-                      <span className="text-zinc-100 group-hover:text-white flex-1 truncate font-medium">{i.title}</span>
-                      <span className="text-xs font-mono text-zinc-600 hidden sm:block">#{i.id}</span>
-                      <span className="text-xs font-mono text-zinc-600 hidden md:block">
-                        {new Date(i.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                      </span>
+                      {/* Left status bar */}
+                      <span className={`w-1 shrink-0 ${STATUS_BAR[i.status] || 'bg-zinc-700'} ${i.status === 'in_progress' ? 'animate-pulse' : ''}`} />
+
+                      <div className="flex items-center gap-3 px-4 py-3.5 flex-1 group-hover:pl-5 transition-all">
+                        <span className={`text-base ${p.color} w-5 shrink-0`}>{p.icon}</span>
+                        <span className={`text-xs font-mono uppercase px-2 py-0.5 rounded-full border ${STATUS_COLOR[i.status] || ''}`}>
+                          {i.status.replace('_', ' ')}
+                        </span>
+                        {age && (
+                          <span className={`text-xs font-mono uppercase px-2 py-0.5 rounded-full border ${age.color}`} title={`Open ${daysSince(i.created_at)} days`}>
+                            {age.label}
+                          </span>
+                        )}
+                        <span className={`flex-1 truncate font-medium ${isDone ? 'text-zinc-500 line-through' : 'text-zinc-100 group-hover:text-white'}`}>
+                          {i.title}
+                        </span>
+                        <span className="text-xs font-mono text-zinc-600 hidden sm:block">#{i.id}</span>
+                        <span className="text-xs font-mono text-zinc-600 hidden md:block">
+                          {new Date(i.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
                     </button>
                   )
                 })}
