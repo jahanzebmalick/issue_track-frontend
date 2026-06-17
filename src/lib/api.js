@@ -36,6 +36,9 @@ export const api = {
   detachTag: (issueId, tagId) => request(`/issues/${issueId}/tags/${tagId}`, { method: 'DELETE' }),
   issueTags: (issueId) => request(`/issues/${issueId}/tags`),
 
+  // activity
+  listActivity: (projectId) => request(`/projects/${projectId}/activity`),
+
   // attachments
   listAttachments: (issueId) => request(`/issues/${issueId}/attachments`),
   uploadAttachment: (issueId, file) => {

@@ -4,14 +4,45 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg: #0a0a0b;
+  --bg-elevated: #18181b;
+  --bg-card: rgba(24, 24, 27, 0.6);
+  --bg-card-hover: rgba(24, 24, 27, 0.9);
+  --text: #e4e4e7;
+  --text-strong: #fafafa;
+  --text-muted: #71717a;
+  --text-dim: #52525b;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.15);
+  --scrollbar: rgba(255, 255, 255, 0.08);
+  --scrollbar-hover: rgba(255, 255, 255, 0.16);
+}
+
+html.light {
+  --bg: #fafafa;
+  --bg-elevated: #ffffff;
+  --bg-card: rgba(255, 255, 255, 0.9);
+  --bg-card-hover: rgba(255, 255, 255, 1);
+  --text: #18181b;
+  --text-strong: #09090b;
+  --text-muted: #71717a;
+  --text-dim: #a1a1aa;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.15);
+  --scrollbar: rgba(0, 0, 0, 0.12);
+  --scrollbar-hover: rgba(0, 0, 0, 0.22);
+}
+
 html, body, #root {
   margin: 0;
   padding: 0;
   min-height: 100vh;
-  background: #0a0a0b;
-  color: #e4e4e7;
+  background: var(--bg);
+  color: var(--text);
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  transition: background 240ms ease, color 240ms ease;
 }
 
 body {
@@ -19,9 +50,16 @@ body {
     radial-gradient(circle at 15% -10%, rgba(99, 102, 241, 0.14), transparent 50%),
     radial-gradient(circle at 85% 110%, rgba(236, 72, 153, 0.10), transparent 50%),
     radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.04), transparent 70%),
-    #0a0a0b;
+    var(--bg);
   background-attachment: fixed;
   overflow-x: hidden;
+}
+
+html.light body {
+  background:
+    radial-gradient(circle at 15% -10%, rgba(99, 102, 241, 0.10), transparent 50%),
+    radial-gradient(circle at 85% 110%, rgba(236, 72, 153, 0.08), transparent 50%),
+    var(--bg);
 }
 
 ::-webkit-scrollbar {
@@ -29,10 +67,9 @@ body {
   height: 10px;
 }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 5px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.16); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
 
-/* ====== Animations ====== */
 @keyframes pulse-ring {
   0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5); }
   100% { box-shadow: 0 0 0 12px rgba(52, 211, 153, 0); }
@@ -97,13 +134,6 @@ body {
 }
 .count-up { animation: count-up 600ms cubic-bezier(0.16, 1, 0.3, 1); }
 
-@keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.4), 0 0 40px rgba(99, 102, 241, 0.2); }
-  50% { box-shadow: 0 0 30px rgba(99, 102, 241, 0.6), 0 0 60px rgba(99, 102, 241, 0.3); }
-}
-.glow-pulse { animation: glow-pulse 3s ease-in-out infinite; }
-
-/* Card lift */
 .lift {
   transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 240ms ease, border-color 240ms ease;
 }
@@ -112,10 +142,21 @@ body {
   box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.5);
 }
 
-/* Stagger delays for fade-in-up */
 .delay-1 { animation-delay: 60ms; }
 .delay-2 { animation-delay: 120ms; }
 .delay-3 { animation-delay: 180ms; }
 .delay-4 { animation-delay: 240ms; }
 .delay-5 { animation-delay: 300ms; }
 .delay-6 { animation-delay: 360ms; }
+
+/* Theme-aware utility classes — use these instead of bg-zinc-* */
+.tw-bg-app { background: var(--bg); }
+.tw-bg-elevated { background: var(--bg-elevated); }
+.tw-bg-card { background: var(--bg-card); }
+.tw-bg-card-hover:hover { background: var(--bg-card-hover); }
+.tw-text { color: var(--text); }
+.tw-text-strong { color: var(--text-strong); }
+.tw-text-muted { color: var(--text-muted); }
+.tw-text-dim { color: var(--text-dim); }
+.tw-border { border-color: var(--border); }
+.tw-border-strong { border-color: var(--border-strong); }

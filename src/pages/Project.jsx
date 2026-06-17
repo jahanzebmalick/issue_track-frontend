@@ -44,11 +44,36 @@ const GRADIENTS = [
 ]
 const gradientFor = (id) => GRADIENTS[id % GRADIENTS.length]
 
+function relativeTime(iso) {
+  const ms = Date.now() - new Date(iso).getTime()
+  const s = Math.floor(ms / 1000)
+  if (s < 60) return `${s}s ago`
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  const d = Math.floor(h / 24)
+  if (d < 30) return `${d}d ago`
+  return new Date(iso).toLocaleDateString()
+}
+
+const KIND_LABEL = {
+  issue_created: { icon: '🆕', verb: 'created issue', color: 'text-blue-300' },
+  issue_updated: { icon: '✏️', verb: 'updated issue', color: 'text-amber-300' },
+  issue_deleted: { icon: '🗑', verb: 'deleted issue', color: 'text-red-300' },
+  comment_added: { icon: '💬', verb: 'commented on issue', color: 'text-violet-300' },
+  attachment_added: { icon: '📎', verb: 'attached file to issue', color: 'text-cyan-300' },
+  member_invited: { icon: '👋', verb: 'invited', color: 'text-emerald-300' },
+}
+
 export default function Project({ projectId, username, onBack, onOpenIssue }) {
   const [project, setProject] = useState(null)
   const [issues, setIssues] = useState([])
   const [members, setMembers] = useState([])
+  const [activity, setActivity] = useState([])
   const [tab, setTab] = useState('issues')
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('issueViewMode') || 'list')
+  const [filter, setFilter] = useState('')
   const [creating, setCreating] = useState(false)
   const [title, setTitle] = useState('')
   const [desc, setDesc] = useState('')
@@ -58,16 +83,23 @@ export default function Project({ projectId, username, onBack, onOpenIssue }) {
   const [pulse, setPulse] = useState(false)
 
   const load = async () => {
-    const [pr, ir, mr] = await Promise.all([
+    const [pr, ir, mr, ar] = await Promise.all([
       api.getProject(projectId),
       api.listIssues(projectId),
       api.listMembers(projectId),
+      api.listActivity(projectId),
     ])
     if (pr.ok) setProject(await pr.json())
     if (ir.ok) setIssues(await ir.json())
     if (mr.ok) setMembers(await mr.json())
+    if (ar.ok) setActivity(await ar.json())
   }
   useEffect(() => { load() }, [projectId])
+
+  const reloadActivity = async () => {
+    const ar = await api.listActivity(projectId)
+    if (ar.ok) setActivity(await ar.json())
+  }
 
   useProjectWS(projectId, (msg) => {
     setPulse(true)
@@ -79,6 +111,8 @@ export default function Project({ projectId, username, onBack, onOpenIssue }) {
     } else if (msg.type === 'issue_deleted') {
       setIssues((cur) => cur.filter((i) => i.id !== msg.data.id))
     }
+    // Any event probably means activity changed too
+    reloadActivity()
   })
 
   const createIssue = async (e) => {
@@ -211,6 +245,7 @@ export default function Project({ projectId, username, onBack, onOpenIssue }) {
         <div className="flex border-b border-zinc-800/60 mb-6">
           {[
             { key: 'issues', label: 'Issues', count: issues.length },
+            { key: 'activity', label: 'Activity', count: activity.length },
             { key: 'members', label: 'Members', count: members.length + 1 },
             { key: 'overview', label: 'Overview' },
           ].map((t) => (
@@ -235,14 +270,35 @@ export default function Project({ projectId, username, onBack, onOpenIssue }) {
 
         {tab === 'issues' && (
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
               <h2 className="text-xl font-bold text-zinc-100">Issues</h2>
-              <button
-                onClick={() => setCreating(!creating)}
-                className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-violet-600 text-white rounded-lg text-sm font-semibold hover:from-indigo-400 hover:to-violet-500 transition shadow-lg shadow-indigo-500/20"
-              >
-                + New issue
-              </button>
+              <div className="flex items-center gap-2">
+                <input
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                  placeholder="Filter…"
+                  className="bg-zinc-900/60 border border-zinc-800 rounded-lg px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-indigo-500/60 w-40 transition"
+                />
+                <div className="flex bg-zinc-900/60 border border-zinc-800 rounded-lg p-0.5">
+                  {['list', 'board'].map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => { setViewMode(m); localStorage.setItem('issueViewMode', m) }}
+                      className={`px-3 py-1 rounded text-xs font-semibold uppercase tracking-wider transition ${
+                        viewMode === m ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setCreating(!creating)}
+                  className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-violet-600 text-white rounded-lg text-sm font-semibold hover:from-indigo-400 hover:to-violet-500 transition shadow-lg shadow-indigo-500/20"
+                >
+                  + New issue
+                </button>
+              </div>
             </div>
 
             {creating && (
@@ -268,14 +324,114 @@ export default function Project({ projectId, username, onBack, onOpenIssue }) {
               </form>
             )}
 
-            {issues.length === 0 ? (
-              <div className="border border-dashed border-zinc-800 rounded-2xl p-16 text-center">
-                <div className="text-zinc-300 font-semibold mb-1">All clear ✨</div>
-                <p className="text-zinc-500 text-sm">No issues yet. Create your first one above.</p>
-              </div>
-            ) : (
+            {(() => {
+              const filtered = filter
+                ? issues.filter((i) => i.title.toLowerCase().includes(filter.toLowerCase()))
+                : issues
+              if (issues.length === 0) {
+                return (
+                  <div className="border border-dashed border-zinc-800 rounded-2xl p-16 text-center">
+                    <div className="text-zinc-300 font-semibold mb-1">All clear ✨</div>
+                    <p className="text-zinc-500 text-sm">No issues yet. Create your first one above.</p>
+                  </div>
+                )
+              }
+              if (viewMode === 'board') {
+                const cols = ['open', 'in_progress', 'done', 'closed']
+                const onDragStart = (e, id) => {
+                  e.dataTransfer.setData('issueId', String(id))
+                  e.dataTransfer.effectAllowed = 'move'
+                }
+                const onDragOver = (e) => {
+                  e.preventDefault()
+                  e.dataTransfer.dropEffect = 'move'
+                }
+                const onDrop = async (e, newStatus) => {
+                  e.preventDefault()
+                  const id = parseInt(e.dataTransfer.getData('issueId'), 10)
+                  const issue = issues.find((i) => i.id === id)
+                  if (!issue || issue.status === newStatus) return
+                  // optimistic update
+                  setIssues((cur) => cur.map((i) => (i.id === id ? { ...i, status: newStatus } : i)))
+                  const r = await api.updateIssue(id, {
+                    title: issue.title,
+                    description: issue.description || '',
+                    status: newStatus,
+                    priority: issue.priority,
+                  })
+                  if (!r.ok) {
+                    // revert on failure
+                    setIssues((cur) => cur.map((i) => (i.id === id ? issue : i)))
+                  }
+                }
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {cols.map((col) => {
+                      const items = filtered.filter((i) => i.status === col)
+                      return (
+                        <div
+                          key={col}
+                          onDragOver={onDragOver}
+                          onDrop={(e) => onDrop(e, col)}
+                          className="border border-zinc-800/60 rounded-xl bg-zinc-900/30 overflow-hidden flex flex-col transition"
+                        >
+                          <div className="px-3 py-2 border-b border-zinc-800/60 bg-zinc-900/50 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${STATUS_BAR[col]} ${col === 'in_progress' ? 'animate-pulse' : ''}`} />
+                              <span className="text-xs font-mono uppercase tracking-wider text-zinc-300">{col.replace('_', ' ')}</span>
+                            </div>
+                            <span className="text-xs font-mono text-zinc-500">{items.length}</span>
+                          </div>
+                          <div className="p-2 space-y-2 min-h-[180px] flex-1">
+                            {items.length === 0 ? (
+                              <div className="text-xs text-zinc-600 text-center py-6 border border-dashed border-zinc-800 rounded-lg">
+                                drop here
+                              </div>
+                            ) : items.map((i, idx) => {
+                              const p = PRIORITY_LABEL[i.priority] || PRIORITY_LABEL.medium
+                              const age = ageBadge(i)
+                              const isDone = i.status === 'done' || i.status === 'closed'
+                              return (
+                                <div
+                                  key={i.id}
+                                  draggable
+                                  onDragStart={(e) => onDragStart(e, i.id)}
+                                  onClick={() => onOpenIssue(i.id)}
+                                  style={{ animationDelay: `${Math.min(idx * 40, 200)}ms` }}
+                                  className="cursor-grab active:cursor-grabbing bg-zinc-950/60 hover:bg-zinc-950 border border-zinc-800/60 hover:border-zinc-700 rounded-lg p-2.5 transition fade-in-up lift select-none"
+                                >
+                                  <div className="flex items-center gap-2 mb-1.5">
+                                    <span className={`text-xs ${p.color}`}>{p.icon}</span>
+                                    <span className="text-xs font-mono text-zinc-600">#{i.id}</span>
+                                    {age && (
+                                      <span className={`text-[10px] font-mono uppercase px-1.5 py-0 rounded border ${age.color} ml-auto`}>
+                                        {age.label}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className={`text-sm leading-snug ${isDone ? 'text-zinc-500 line-through' : 'text-zinc-100'}`}>
+                                    {i.title}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              }
+              if (filtered.length === 0) {
+                return (
+                  <div className="border border-dashed border-zinc-800 rounded-2xl p-12 text-center">
+                    <p className="text-zinc-500 text-sm">No issues match "{filter}"</p>
+                  </div>
+                )
+              }
+              return (
               <div className="border border-zinc-800/60 rounded-xl overflow-hidden divide-y divide-zinc-800/60 bg-zinc-900/30">
-                {issues.map((i, idx) => {
+                {filtered.map((i, idx) => {
                   const p = PRIORITY_LABEL[i.priority] || PRIORITY_LABEL.medium
                   const age = ageBadge(i)
                   const isDone = i.status === 'done' || i.status === 'closed'
@@ -308,6 +464,66 @@ export default function Project({ projectId, username, onBack, onOpenIssue }) {
                         </span>
                       </div>
                     </button>
+                  )
+                })}
+              </div>
+              )
+            })()}
+          </div>
+        )}
+
+        {tab === 'activity' && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-zinc-100">Activity</h2>
+              <button
+                onClick={reloadActivity}
+                className="text-xs text-zinc-500 hover:text-zinc-300 transition"
+                title="Refresh"
+              >
+                ↻ Refresh
+              </button>
+            </div>
+
+            {activity.length === 0 ? (
+              <div className="border border-dashed border-zinc-800 rounded-2xl p-12 text-center">
+                <div className="text-zinc-300 font-semibold mb-1">Nothing happened here yet</div>
+                <p className="text-zinc-500 text-sm">Activity will appear as you and your team work.</p>
+              </div>
+            ) : (
+              <div className="border border-zinc-800/60 rounded-xl bg-zinc-900/30 overflow-hidden">
+                {activity.map((a, idx) => {
+                  const label = KIND_LABEL[a.kind] || { icon: '•', verb: a.kind, color: 'text-zinc-300' }
+                  const meta = a.metadata || {}
+                  let detail = ''
+                  if (meta.title) detail = `"${meta.title}"`
+                  else if (meta.username) detail = `@${meta.username}${meta.role ? ` as ${meta.role}` : ''}`
+                  else if (meta.filename) detail = meta.filename
+                  return (
+                    <div
+                      key={a.id}
+                      style={{ animationDelay: `${Math.min(idx * 30, 240)}ms` }}
+                      className="flex items-start gap-3 px-4 py-3 border-b border-zinc-800/60 last:border-b-0 fade-in-up hover:bg-zinc-900/50 transition"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-base shrink-0">
+                        {label.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm text-zinc-200">
+                          <span className="font-semibold">@{a.username}</span>
+                          <span className={`${label.color} mx-1`}>{label.verb}</span>
+                          {a.target_id != null && (
+                            <span className="font-mono text-zinc-500">#{a.target_id}</span>
+                          )}
+                          {detail && (
+                            <span className="text-zinc-400 ml-1">{detail}</span>
+                          )}
+                        </div>
+                        <div className="text-xs text-zinc-500 mt-0.5">
+                          {relativeTime(a.created_at)}
+                        </div>
+                      </div>
+                    </div>
                   )
                 })}
               </div>
