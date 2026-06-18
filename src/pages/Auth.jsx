@@ -1,10 +1,6 @@
 import { useState } from 'react'
 import { api } from '../lib/api'
 
-const API_HOST = location.hostname === 'localhost'
-  ? 'http://localhost:8080'
-  : 'https://issuetrack-api.onrender.com'
-
 export default function Auth({ onAuth }) {
   const [mode, setMode] = useState('login')
   const [username, setUsername] = useState('')
@@ -109,7 +105,7 @@ export default function Auth({ onAuth }) {
           </div>
 
           <a
-            href={`${API_HOST}/api/auth/github/login`}
+            href="/api/auth/github/login"
             className="w-full flex items-center justify-center gap-2.5 bg-zinc-950 hover:bg-zinc-800 border border-zinc-700 text-zinc-100 font-semibold py-2.5 rounded-lg transition"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
