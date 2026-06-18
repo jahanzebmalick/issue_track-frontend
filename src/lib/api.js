@@ -12,6 +12,7 @@ export const api = {
   signup: (body) => request('/signup', { method: 'POST', body: JSON.stringify(body) }),
   login: (body) => request('/login', { method: 'POST', body: JSON.stringify(body) }),
   logout: () => request('/logout', { method: 'POST' }),
+  me: () => request('/me'),
 
   listProjects: () => request('/projects'),
   createProject: (body) => request('/projects', { method: 'POST', body: JSON.stringify(body) }),
