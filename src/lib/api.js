@@ -58,4 +58,8 @@ export const api = {
   inviteMember: (projectId, body) => request(`/projects/${projectId}/members`, { method: 'POST', body: JSON.stringify(body) }),
   updateMemberRole: (projectId, userId, body) => request(`/projects/${projectId}/members/${userId}`, { method: 'PATCH', body: JSON.stringify(body) }),
   removeMember: (projectId, userId) => request(`/projects/${projectId}/members/${userId}`, { method: 'DELETE' }),
+
+  // github
+  listGithubRepos: () => request('/github/repos'),
+  linkProjectRepo: (projectId, repo) => request(`/projects/${projectId}/github`, { method: 'PATCH', body: JSON.stringify({ repo }) }),
 }

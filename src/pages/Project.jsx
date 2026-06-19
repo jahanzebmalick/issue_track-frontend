@@ -81,6 +81,40 @@ export default function Project({ projectId, username, onBack, onOpenIssue }) {
   const [inviteName, setInviteName] = useState('')
   const [inviteRole, setInviteRole] = useState('member')
   const [pulse, setPulse] = useState(false)
+  const [pickingRepo, setPickingRepo] = useState(false)
+  const [repos, setRepos] = useState([])
+  const [repoQuery, setRepoQuery] = useState('')
+  const [reposLoading, setReposLoading] = useState(false)
+
+  const openRepoPicker = async () => {
+    setPickingRepo(true)
+    setReposLoading(true)
+    const r = await api.listGithubRepos()
+    setReposLoading(false)
+    if (r.ok) {
+      const list = await r.json()
+      setRepos(list || [])
+    }
+  }
+
+  const connectRepo = async (fullName) => {
+    const r = await api.linkProjectRepo(projectId, fullName)
+    if (r.ok) {
+      setProject((p) => ({ ...p, github_repo: fullName }))
+      setPickingRepo(false)
+    }
+  }
+
+  const disconnectRepo = async () => {
+    if (!confirm('Disconnect this repo from the project?')) return
+    const r = await api.linkProjectRepo(projectId, '')
+    if (r.ok) setProject((p) => ({ ...p, github_repo: null }))
+  }
+
+  const filteredRepos = repos.filter((r) =>
+    r.full_name.toLowerCase().includes(repoQuery.toLowerCase()) ||
+    (r.description || '').toLowerCase().includes(repoQuery.toLowerCase())
+  )
 
   const load = async () => {
     const [pr, ir, mr, ar] = await Promise.all([
@@ -611,6 +645,51 @@ export default function Project({ projectId, username, onBack, onOpenIssue }) {
           </div>
         )}
 
+        {pickingRepo && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center px-4" onClick={() => setPickingRepo(false)}>
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-lg w-full max-h-[80vh] flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="p-5 border-b border-zinc-800">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-bold text-zinc-100">Connect a GitHub repo</h3>
+                  <button onClick={() => setPickingRepo(false)} className="text-zinc-500 hover:text-zinc-300 text-xl">×</button>
+                </div>
+                <input
+                  value={repoQuery}
+                  onChange={(e) => setRepoQuery(e.target.value)}
+                  placeholder="Search repos…"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-none focus:border-indigo-500/60"
+                  autoFocus
+                />
+              </div>
+              <div className="overflow-y-auto flex-1 p-2">
+                {reposLoading && (
+                  <div className="p-8 text-center text-zinc-500 text-sm">Loading repos from GitHub…</div>
+                )}
+                {!reposLoading && filteredRepos.length === 0 && (
+                  <div className="p-8 text-center text-zinc-500 text-sm">
+                    {repos.length === 0 ? 'No GitHub repos found. Did you link your GitHub account?' : 'No matches.'}
+                  </div>
+                )}
+                {!reposLoading && filteredRepos.map((r) => (
+                  <button
+                    key={r.id}
+                    onClick={() => connectRepo(r.full_name)}
+                    className="w-full text-left p-3 rounded-lg hover:bg-zinc-800/60 transition group"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-mono text-sm text-zinc-100 truncate">{r.full_name}</span>
+                      {r.private && <span className="text-xs px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">🔒 private</span>}
+                    </div>
+                    {r.description && (
+                      <div className="text-xs text-zinc-500 line-clamp-2">{r.description}</div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {tab === 'overview' && (
           <div className="space-y-4">
             <div className="border border-zinc-800/60 rounded-xl p-6 bg-zinc-900/40">
@@ -624,6 +703,47 @@ export default function Project({ projectId, username, onBack, onOpenIssue }) {
             <div className="border border-zinc-800/60 rounded-xl p-6 bg-zinc-900/40">
               <div className="text-xs text-zinc-400 uppercase tracking-wider font-semibold mb-2">Created</div>
               <div className="text-zinc-200">{new Date(project.created_at).toLocaleString()}</div>
+            </div>
+
+            <div className="border border-zinc-800/60 rounded-xl p-6 bg-zinc-900/40">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs text-zinc-400 uppercase tracking-wider font-semibold mb-2 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+                    </svg>
+                    GitHub repo
+                  </div>
+                  {project.github_repo ? (
+                    <a
+                      href={`https://github.com/${project.github_repo}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-indigo-300 hover:text-indigo-200 font-mono text-sm"
+                    >
+                      {project.github_repo} ↗
+                    </a>
+                  ) : (
+                    <div className="text-zinc-500 italic text-sm">No repo connected</div>
+                  )}
+                </div>
+                <div className="shrink-0 flex gap-2">
+                  {project.github_repo && (
+                    <button
+                      onClick={disconnectRepo}
+                      className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs font-semibold transition"
+                    >
+                      Disconnect
+                    </button>
+                  )}
+                  <button
+                    onClick={openRepoPicker}
+                    className="px-3 py-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 rounded-lg text-xs font-semibold transition"
+                  >
+                    {project.github_repo ? 'Change' : 'Connect repo'}
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="border border-red-900/40 rounded-xl p-6 bg-red-950/20 mt-10">
